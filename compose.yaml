@@ -1,35 +1,56 @@
 services:
-  frontend:
-    container_name: frontend
-    build:
-      context: ./frontend
-    ports:
-      - "3000:3000"
-    networks:
-      - frontnet
-    develop:
-      watch:
-        - action: sync
-          path: ./frontend
-          target: /usr/src/frontend
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: package.json
   nginx:
-        container_name: nginx
-        restart: always
-        build:
-            context: ./nginx
-        ports:
-            - "8080:8080"
-        depends_on:
-            - frontend 
-        develop:
-        networks:
-            - frontnet
+    container_name: nginx
+    restart: always
+    build: .
+    ports:
+        - "8080:8080"
+    depends_on:
+        - web
+    networks:
+        - network1
+  web:
+    container_name: web
+    build:
+      context: ./web
+    ports:
+      - "8000:8000"
+    networks:
+      - network1
+    depends_on:
+      - db
+    environment:
+     DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+     DEBUG: ${DEBUG}
+     DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
+     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+     DATABASE_ENGINE: ${DATABASE_ENGINE}
+     DATABASE_NAME: ${DATABASE_NAME}
+     DATABASE_USERNAME: ${DATABASE_USERNAME}
+ 
+     DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+     DATABASE_HOST: ${DATABASE_HOST}
+     DATABASE_PORT: ${DATABASE_PORT}
+    env_file:
+     - .env
+  
+  db:
+    container_name: db
+    image: postgres:latest
+    restart: always
+    environment:
+     POSTGRES_DB: ${DATABASE_NAME}
+     POSTGRES_USER: ${DATABASE_USERNAME}
+     POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    env_file:
+      - .env
+    volumes:
+      - db:/var/lib/postgresql/data 
 
 
 networks:
-  frontnet:
+  network1:
     driver: bridge
+
+volumes:
+  db:
